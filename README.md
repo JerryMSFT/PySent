@@ -13,7 +13,7 @@ This project implements a sentiment analysis model using a Long Short-Term Memor
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.12.4
 - PyTorch
 - torchtext
 - torchdata
@@ -24,7 +24,7 @@ Choose the instructions for your operating system:
 
 ### MacBook (Intel)
 
-1. Ensure you have Python 3.6+ installed. Check your version:
+1. Ensure you have Python 3.12.4 installed. Check your version:
    ```
    python3 --version
    ```
