@@ -180,3 +180,84 @@ Feel free to fork this project and submit pull requests with improvements or ope
 ## License
 
 This project is open-source and available under the MIT License.
+
+# Using the Model
+
+## Example Inputs for Sentiment Analysis
+
+After training, you can input various types of text to analyze their sentiment. Here are some examples to try:
+
+1. Movie Reviews:
+   - "This film was a masterpiece of storytelling and visual effects."
+   - "I found the movie boring and predictable, with poor acting throughout."
+   - "While the cinematography was stunning, the plot left much to be desired."
+
+2. Product Reviews:
+   - "This gadget exceeded my expectations. It's user-friendly and efficient."
+   - "The product arrived damaged and customer service was unhelpful."
+   - "For the price, it's a decent option, but there are better alternatives available."
+
+3. Restaurant Experiences:
+   - "The food was delicious and the service was impeccable."
+   - "Our dinner was ruined by slow service and cold, unappetizing dishes."
+   - "The ambiance was nice, but the menu was limited and overpriced."
+
+4. Book Opinions:
+   - "I couldn't put this book down! The characters were so well-developed."
+   - "The story started strong but fell apart in the second half."
+   - "While not groundbreaking, it was an enjoyable and easy read."
+
+5. General Statements:
+   - "I'm having a wonderful day and everything is going great!"
+   - "This has been the worst week of my life."
+   - "The weather is a bit gloomy, but I'm looking forward to the weekend."
+
+When you input these sentences, the model will analyze them and provide a sentiment score. Remember:
+- Scores closer to 1 indicate more positive sentiment.
+- Scores closer to 0 indicate more negative sentiment.
+- Scores around 0.5 may indicate neutral or mixed sentiment.
+
+Try these examples and see how well the model captures the sentiment in each statement. You can also create your own sentences to test the model's capabilities and limitations.
+
+## Expressing Movie Sentiments for Analysis
+
+You can provide sentiment about a movie by simply typing a statement or opinion about it. The model will analyze the text you enter and determine whether it expresses a positive or negative sentiment. Here are some examples:
+
+1. Simple statements:
+   - "I loved the movie TRON."
+   - "TRON was a terrible film."
+   - "The new superhero movie was amazing!"
+
+2. More detailed opinions:
+   - "TRON had incredible visual effects but the story was confusing."
+   - "I enjoyed TRON for its nostalgic value, even though the plot was weak."
+   - "The acting in TRON was mediocre, but the concept was innovative."
+
+3. Comparisons or context:
+   - "TRON was much better than I expected."
+   - "Compared to the original, the TRON sequel was disappointing."
+   - "For a sci-fi movie from the 80s, TRON was groundbreaking."
+
+How to use:
+1. After the model is trained, you'll see a prompt: "Enter text:"
+2. Type your statement about the movie and press Enter.
+3. The model will analyze your input and provide a sentiment score.
+
+Example interaction:
+
+```
+Enter text: I loved the movie TRON.
+Sentiment: Positive (Score: 0.89)
+
+Enter text: TRON was visually stunning but the plot was hard to follow.
+Sentiment: Neutral (Score: 0.52)
+
+Enter text: The sequel to TRON was a huge letdown.
+Sentiment: Negative (Score: 0.21)
+```
+
+Remember:
+- Be clear and direct in your statements.
+- You can mention specific aspects of the movie (plot, acting, effects, etc.).
+- The model analyzes the overall sentiment of your entire statement.
+- You don't need to use any special format or keywords; just express your opinion naturally.
