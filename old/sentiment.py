@@ -1,5 +1,6 @@
 import os
-os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.7'
+# os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '1'
+
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
