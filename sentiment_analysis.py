@@ -8,22 +8,31 @@ import torch.optim as optim
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.utils.data import DataLoader, Dataset
 from datasets import load_dataset
+import gc
 
 print(f"PyTorch version: {torch.__version__}")
 torch.manual_seed(1)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Use MPS for M1 Macs, CUDA for NVIDIA GPUs, or fall back to CPU
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+elif torch.cuda.is_available():
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
 print(f"Using device: {device}")
 
-dataset = load_dataset("imdb")
-train_dataset = dataset["train"]
-test_dataset = dataset["test"]
+# Load a subset of the IMDB dataset to reduce memory usage
+dataset = load_dataset("imdb", split="train[:25%]+test[:25%]")
+train_dataset = dataset.shuffle(seed=42).select(range(10000))  # Use 10,000 samples for training
+test_dataset = dataset.shuffle(seed=42).select(range(10000, 12500))  # Use 2,500 samples for testing
 
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")  # Use DistilBERT, a lighter version of BERT
+model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=2)
 model.to(device)
 
 class IMDBDataset(Dataset):
-    def __init__(self, dataset, tokenizer, max_length=512):
+    def __init__(self, dataset, tokenizer, max_length=256):  # Reduced max_length
         self.dataset = dataset
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -49,12 +58,11 @@ class IMDBDataset(Dataset):
 train_dataset = IMDBDataset(train_dataset, tokenizer)
 test_dataset = IMDBDataset(test_dataset, tokenizer)
 
-train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size=32)
+train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True)  # Reduced batch size
+test_dataloader = DataLoader(test_dataset, batch_size=16)
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters())
-num_epochs = 5
+optimizer = optim.AdamW(model.parameters(), lr=2e-5)  # Use AdamW optimizer
+num_epochs = 3  # Reduced number of epochs
 
 print("Starting training...")
 
@@ -66,11 +74,16 @@ for epoch in range(num_epochs):
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
         labels = batch["label"].to(device)
-        output = model(input_ids, attention_mask=attention_mask, labels=labels)
-        loss = output.loss
+        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
+        
+        # Clear GPU memory
+        del input_ids, attention_mask, labels, outputs
+        torch.cuda.empty_cache() if torch.cuda.is_available() else gc.collect()
+    
     print(f'Epoch {epoch+1}/{num_epochs}, Loss: {total_loss/len(train_dataloader):.4f}')
 
 print("Training complete. Evaluating on test set...")
@@ -83,10 +96,14 @@ with torch.no_grad():
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
         labels = batch["label"].to(device)
-        output = model(input_ids, attention_mask=attention_mask)
-        predictions = torch.argmax(output.logits, dim=1)
+        outputs = model(input_ids, attention_mask=attention_mask)
+        predictions = torch.argmax(outputs.logits, dim=1)
         correct += (predictions == labels).sum().item()
         total += labels.size(0)
+        
+        # Clear GPU memory
+        del input_ids, attention_mask, labels, outputs
+        torch.cuda.empty_cache() if torch.cuda.is_available() else gc.collect()
 
 print(f'Accuracy on the test set: {correct/total:.4f}')
 
@@ -95,11 +112,16 @@ print("Entering interactive mode...")
 def predict_sentiment(text):
     model.eval()
     with torch.no_grad():
-        inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
+        inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=256)
         inputs = {k: v.to(device) for k, v in inputs.items()}
         outputs = model(**inputs)
         probabilities = torch.softmax(outputs.logits, dim=1)
-        sentiment_score = probabilities[:, 1].item()  # Probability of positive sentiment
+        sentiment_score = probabilities[:, 1].item()
+        
+        # Clear GPU memory
+        del inputs, outputs
+        torch.cuda.empty_cache() if torch.cuda.is_available() else gc.collect()
+    
     return sentiment_score
 
 print("\nYou can now analyze sentiments!")
@@ -118,3 +140,4 @@ while True:
         print("Please enter a non-empty text.")
 
 print("Thank you for using the sentiment analyzer!")
+
