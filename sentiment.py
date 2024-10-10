@@ -1,18 +1,20 @@
+import os
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
 import warnings
-import torchtext
+warnings.filterwarnings("ignore", category=UserWarning)
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torchtext; torchtext.disable_torchtext_deprecation_warning()
 from torchtext.datasets import IMDB
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
 
-# Silence deprecation warnings
-warnings.filterwarnings("ignore", category=UserWarning)
-torchtext.disable_torchtext_deprecation_warning()
+print(f"PyTorch version: {torch.__version__}")
+print(f"torchtext version: {torch.__version__}")
 
 print("Starting to load the IMDB dataset...")
 
@@ -33,8 +35,6 @@ class SentimentLSTM(nn.Module):
         output = self.fc(hidden.squeeze(0))
         return torch.sigmoid(output)
 
-print("Preparing data and building vocabulary...")
-
 # Tokenizer and vocabulary
 tokenizer = get_tokenizer('basic_english')
 def yield_tokens(data_iter):
@@ -45,6 +45,8 @@ def yield_tokens(data_iter):
 train_iter = IMDB(split='train')
 vocab = build_vocab_from_iterator(yield_tokens(train_iter), specials=['<unk>'])
 vocab.set_default_index(vocab['<unk>'])
+
+print("Preparing data and building vocabulary...")
 
 # Text pipeline
 text_pipeline = lambda x: [vocab[token] for token in tokenizer(x)]
@@ -60,8 +62,6 @@ def collate_batch(batch):
     text_list = pad_sequence(text_list, batch_first=True)
     return label_list.to(device), text_list.to(device)
 
-print("Data preparation complete.")
-
 # Model parameters
 VOCAB_SIZE = len(vocab)
 EMBEDDING_DIM = 100
@@ -70,9 +70,8 @@ BATCH_SIZE = 32
 NUM_EPOCHS = 5
 
 # Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-print("Initializing the model...")
+device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+print(f"Using device: {device}")
 
 # Initialize the model
 model = SentimentLSTM(VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM).to(device)
@@ -91,19 +90,13 @@ for epoch in range(NUM_EPOCHS):
     for labels, text in train_dataloader:
         optimizer.zero_grad()
         output = model(text)
-        
-        # Check for invalid label values
-        if torch.any(labels < 0) or torch.any(labels > 1):
-            print("Warning: Invalid label values detected.")
-            continue
-        
         loss = criterion(output.squeeze(), labels)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
     print(f'Epoch {epoch+1}/{NUM_EPOCHS}, Loss: {total_loss/len(train_dataloader):.4f}')
 
-print("Training complete. Testing the model...")
+print("Training complete. Entering interactive mode...")
 
 # Function to predict sentiment
 def predict_sentiment(text):
@@ -113,13 +106,7 @@ def predict_sentiment(text):
         output = model(text_tensor)
     return output.item()
 
-# Test the model
-test_sentence = "This movie was fantastic! I really enjoyed it."
-sentiment = predict_sentiment(test_sentence)
-print(f"Sentiment of '{test_sentence}': {'Positive' if sentiment > 0.5 else 'Negative'} (Score: {sentiment:.2f})")
-
-print("Model test complete. Entering interactive mode...")
-
+# Interactive loop
 print("\nYou can now analyze sentiments!")
 print("Enter a sentence to analyze its sentiment (or type 'quit' to exit):")
 
@@ -130,10 +117,7 @@ while True:
     
     if user_input:
         sentiment_score = predict_sentiment(user_input)
-        if sentiment_score > 0.5:
-            sentiment = "Positive"
-        else:
-            sentiment = "Negative"
+        sentiment = "Positive" if sentiment_score > 0.5 else "Negative"
         print(f"Sentiment: {sentiment} (Score: {sentiment_score:.2f})")
     else:
         print("Please enter a non-empty text.")
